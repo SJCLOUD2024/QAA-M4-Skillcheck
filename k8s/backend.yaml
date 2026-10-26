@@ -1,31 +1,59 @@
+# ===== Backend Deployment =====
+# A Deployment keeps a set number of identical pods running.
+# If a pod crashes or is deleted, it creates a new one to replace it.
+
+# Which version of the Kubernetes API this object uses.
 apiVersion: apps/v1
+# The type of object we're creating.
 kind: Deployment
 metadata:
+  # The Deployment's name - used in commands like "kubectl get deployment backend".
   name: backend
 spec:
+  # How many copies (pods) of the backend to run.
   replicas: 2
+  # How the Deployment finds the pods it manages: any pod labelled app=backend.
   selector:
     matchLabels:
       app: backend
+  # The template every backend pod is created from.
   template:
     metadata:
+      # The label stuck on each pod. Must match the selector above,
+      # and the Service below also uses it to find these pods.
       labels:
         app: backend
     spec:
+      # The containers that run inside each pod (just one here).
       containers:
         - name: backend
+          # The image to run, pulled from Docker Hub.
           image: sjcloud2024/qaa-backend:latest
           ports:
+            # The port the Express app listens on inside the container.
             - containerPort: 5000
+
+# "---" separates two objects in the same file.
 ---
+
+# ===== Backend Service =====
+# A Service gives the pods one stable name and address, and spreads
+# traffic across them. Pods come and go; the Service stays the same.
+
 apiVersion: v1
 kind: Service
 metadata:
+  # This name is what nginx uses in nginx.conf (http://backend:5000).
   name: backend
 spec:
+  # ClusterIP = only reachable from inside the cluster, not from the internet.
+  # Only the frontend pods need to talk to the backend.
   type: ClusterIP
+  # Send traffic to pods labelled app=backend.
   selector:
     app: backend
   ports:
+    # port = the port other pods use to reach this Service.
+    # targetPort = the port on the pod the traffic is sent to.
     - port: 5000
       targetPort: 5000

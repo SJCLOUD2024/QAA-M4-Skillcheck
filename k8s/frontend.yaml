@@ -1,31 +1,51 @@
+# ===== Frontend Deployment =====
+# Keeps 2 nginx pods running that serve the web page.
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
 spec:
+  # Run 2 copies of the frontend.
   replicas: 2
+  # Manage any pod labelled app=frontend.
   selector:
     matchLabels:
       app: frontend
+  # The template each frontend pod is created from.
   template:
     metadata:
+      # Label on each pod - matches the selector above and the Service below.
       labels:
         app: frontend
     spec:
       containers:
         - name: frontend
+          # The nginx image we built and pushed to Docker Hub.
           image: sjcloud2024/qaa-frontend:latest
           ports:
+            # nginx listens on port 80 inside the container.
             - containerPort: 80
+
 ---
+
+# ===== Frontend Service =====
+# Exposes the frontend pods to the outside world.
+
 apiVersion: v1
 kind: Service
 metadata:
   name: frontend
 spec:
+  # LoadBalancer = reachable from outside the cluster.
+  # On k3s this binds to port 80 on the EC2 instance itself, which is why
+  # "curl localhost" and http://<public-ip> both reach the app.
   type: LoadBalancer
+  # Send traffic to pods labelled app=frontend.
   selector:
     app: frontend
   ports:
+    # port = the port people connect to (80 = normal web traffic).
+    # targetPort = the port nginx listens on inside the pod.
     - port: 80
       targetPort: 80
